@@ -1,6 +1,7 @@
 // components/HeroSection.tsx
 import { useState } from "react";
 import { Download } from "lucide-react";
+import html2canvas from "html2canvas";
 
 export default function HeroSection() {
   const [text, setText] = useState("");
@@ -8,12 +9,17 @@ export default function HeroSection() {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [selectedFont, setSelectedFont] = useState("vazir");
-
-  const handleDownload = () => {
-    // Implement download functionality
-    console.log("Download functionality to be implemented");
+  const [bgcolor, setbgcolor] = useState("");
+  const handleCapture = async () => {
+    const element = document.getElementById("preview");
+    if (element) {
+      const canvas = await html2canvas(element, { allowTaint: true });
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = "preview.png";
+      link.click();
+    }
   };
-
   return (
     <section
       className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 md:py-20"
@@ -38,14 +44,15 @@ export default function HeroSection() {
             <div className="flex flex-col gap-2">
               <p className="text-base font-medium">رنگ پس‌زمینه</p>
               <label
-                className="size-12 rounded-full border-2 border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
-                style={{ backgroundColor: "rgb(255, 251, 254)" }}
+                className="size-12 rounded-full border-2 bg-[] border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
+                style={{ backgroundColor: `${bgcolor}` }}
               >
                 <input
+                  onChange={(e) => setbgcolor(e.target.value)}
                   checked
                   className="invisible"
                   name="bg-color"
-                  type="radio"
+                  type="color"
                 />
               </label>
             </div>
@@ -55,7 +62,7 @@ export default function HeroSection() {
                 className="size-12 rounded-full border-2 border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
                 style={{ backgroundColor: "rgb(30, 30, 46)" }}
               >
-                <input className="invisible" name="text-color" type="radio" />
+                <input className="invisible" name="text-color" type="color" />
               </label>
             </div>
           </div>
@@ -126,22 +133,26 @@ export default function HeroSection() {
 
         {/* Preview Panel */}
         <div
-          className="relative min-h-[400px] bg-accent  lg:min-h-full flex items-center justify-center p-0 rounded-2xl  shadow-soft"
+          className="relative min-h-[400px] bg-accent  lg:min-h-full flex items-center justify-center p-3 rounded-2xl  shadow-soft"
           style={{
             backgroundImage:
               "linear-gradient(to bottom right, rgba(93, 63, 211, 0.3), rgba(93, 63, 211, 0))",
           }}
         >
-          <div className="absolute inset-0.5 rounded-[19px] bg-background-light dark:bg-background-dark"></div>
-          <div className="relative w-full h-full max-h-[580px]  flex items-center justify-center rounded-2xl overflow-hidden p-8">
+          <div className="absolute inset-0.5 rounded-[19px] bg-background-light"></div>
+          <div
+            id={"preview"}
+            style={{ backgroundColor: `${bgcolor}` }}
+            className="relative w-full h-full max-h-[580px]  flex items-center justify-center overflow-hidden p-8"
+          >
             <button
-              onClick={handleDownload}
+              onClick={handleCapture}
               className="absolute top-4 left-4 flex items-center justify-center size-10 rounded-full bg-primary text-white hover:bg-primary-light transition-colors z-10"
             >
               <Download size={20} />
             </button>
             <p
-              className="text-center text-nowrap text-text-light dark:text-text-dark"
+              className="text-center text-black text-nowrap  "
               style={{
                 fontSize: `${fontSize}px`,
                 fontWeight: isBold ? "bold" : "normal",
