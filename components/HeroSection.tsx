@@ -160,6 +160,7 @@ export default function HeroSection() {
             <p
               className={`text-center text-nowrap  `}
               style={{
+                fontFamily: `${selectedFont}`,
                 fontSize: `${fontSize}px`,
                 fontWeight: isBold ? "bold" : "normal",
                 fontStyle: isItalic ? "italic" : "normal",
