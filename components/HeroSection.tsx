@@ -10,13 +10,14 @@ export default function HeroSection() {
   const [isItalic, setIsItalic] = useState(false);
   const [selectedFont, setSelectedFont] = useState("vazir");
   const [bgcolor, setbgcolor] = useState("");
+  const [textcolor, settextcolor] = useState("");
   const handleCapture = async () => {
     const element = document.getElementById("preview");
     if (element) {
       const canvas = await html2canvas(element, { allowTaint: true });
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
-      link.download = "preview.png";
+      link.download = "matnpic.ir.png";
       link.click();
     }
   };
@@ -44,8 +45,8 @@ export default function HeroSection() {
             <div className="flex flex-col gap-2">
               <p className="text-base font-medium">رنگ پس‌زمینه</p>
               <label
-                className="size-12 rounded-full border-2 bg-[] border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
-                style={{ backgroundColor: `${bgcolor}` }}
+                className="size-12 rounded-full border-2 bg-[] border-border-light  dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
+                style={{ backgroundColor: `${bgcolor || "white"}` }}
               >
                 <input
                   onChange={(e) => setbgcolor(e.target.value)}
@@ -60,9 +61,14 @@ export default function HeroSection() {
               <p className="text-base font-medium">رنگ متن</p>
               <label
                 className="size-12 rounded-full border-2 border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
-                style={{ backgroundColor: "rgb(30, 30, 46)" }}
+                style={{ backgroundColor: `${textcolor}` }}
               >
-                <input className="invisible" name="text-color" type="color" />
+                <input
+                  className="invisible"
+                  onChange={(e) => settextcolor(e.target.value)}
+                  name="text-color"
+                  type="color"
+                />
               </label>
             </div>
           </div>
@@ -142,7 +148,7 @@ export default function HeroSection() {
           <div className="absolute inset-0.5 rounded-[19px] bg-background-light"></div>
           <div
             id={"preview"}
-            style={{ backgroundColor: `${bgcolor}` }}
+            style={{ backgroundColor: `${bgcolor || "white"}` }}
             className="relative w-full h-full max-h-[580px]  flex items-center justify-center overflow-hidden p-8"
           >
             <button
@@ -152,11 +158,12 @@ export default function HeroSection() {
               <Download size={20} />
             </button>
             <p
-              className="text-center text-black text-nowrap  "
+              className={`text-center text-nowrap  `}
               style={{
                 fontSize: `${fontSize}px`,
                 fontWeight: isBold ? "bold" : "normal",
                 fontStyle: isItalic ? "italic" : "normal",
+                color: `${textcolor || "black"}`,
               }}
             >
               {text || "متن شما اینجا نمایش داده می‌شود"}
