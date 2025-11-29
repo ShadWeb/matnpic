@@ -1,15 +1,30 @@
 // components/GallerySection.tsx
 import { GalleryItem } from "@/types";
+import Link from "next/link";
 
 const galleryItems: GalleryItem[] = [
   {
-    id: "1",
-    imageUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAqpXQRhej98RoZ_mh2YJBylE2zUoi5cVQluwyQ9rZ6h79V-CrAlaiMFpeUp-fBsDHD0A3w74SaIhLI8U9c9-GZh13hFP_1SK3vTj--0B8J0i3XgqJDlzdzWexJy59uezVmyGOi-tskIEVwa6ut9uU95cBWUi6ck92li_S3iZMuAmwykRg38UxnjF8XmrfMvOvmwnQjnny0_0Fs4jMfsLcNqFqnMGHngc222dPYDhXB2cWuW6869uACCTm_0dyFKQNw5tNNTCRXd6Tt",
-    alt: "Abstract colorful geometric shapes",
-    description: "رنگ‌های در هم تنیده.",
+    id: "pdf-ax",
+    imageUrl: "https://cdn-icons-png.flaticon.com/512/337/337946.png", // placeholder icon
+    alt: "سایت تبدیل عکس به PDF - pdf-ax",
+    description: "سایت حرفه‌ای تبدیل عکس به PDF. سریع، ساده و رایگان.",
+    link: "https://www.pdf-ax.com/",
   },
-  // Add other gallery items here...
+  {
+    id: "ax-matn",
+    imageUrl: "https://cdn-icons-png.flaticon.com/512/1828/1828884.png", // placeholder icon
+    alt: "سایت تبدیل عکس به متن - ax-matn",
+    description:
+      "تبدیل عکس به متن فارسی و انگلیسی با دقت بالا. مناسب محتوای متنی.",
+    link: "https://ax-matn.com/",
+  },
+  {
+    id: "ax-pdf",
+    imageUrl: "https://cdn-icons-png.flaticon.com/512/337/337946.png", // placeholder icon
+    alt: "سایت تبدیل عکس به PDF - ax-pdf",
+    description: "تبدیل سریع و آسان عکس به PDF. نسخه سبک و سریع.",
+    link: "https://ax-pdf.ir/",
+  },
 ];
 
 export default function GallerySection() {
@@ -39,12 +54,14 @@ export default function GallerySection() {
               aria-label={item.alt}
             />
             <p className="text-sm font-normal flex-grow">{item.description}</p>
-            <button
-              onClick={() => handleUseText(item.description)}
-              className="w-full flex items-center justify-center rounded-lg h-10 px-4 bg-primary/20 text-primary text-sm font-bold group-hover:bg-primary group-hover:text-white transition-colors"
+            <Link
+              href={item.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center rounded-lg h-10 px-4 bg-primary text-white text-sm font-bold transition-colors hover:bg-primary/90"
             >
-              استفاده از این متن
-            </button>
+              ورود به سایت
+            </Link>
           </div>
         ))}
       </div>

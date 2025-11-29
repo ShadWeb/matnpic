@@ -84,9 +84,30 @@ export default function HeroSection() {
                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' fill='rgb(167,139,250)' viewBox='0 0 256 256'%3e%3cpath d='M181.66,170.34a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L128,212.69l42.34-42.35A8,8,0,0,1,181.66,170.34Zm-96-84.68L128,43.31l42.34,42.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48-48A8,8,0,0,0,85.66,85.66Z'%3e%3c/path%3e%3c/svg%3e")`,
               }}
             >
-              <option value="vazir">وزیرمتن</option>
-              <option value="sahel">ساحل</option>
-              <option value="lalezar">لاله‌زار</option>
+              {/* Dana */}
+              <option value="Dana-Regular">دانا Regular</option>
+              <option value="Dana-Medium">دانا Medium</option>
+              <option value="Dana-DemiBold">دانا DemiBold</option>
+
+              {/* IRANSans */}
+              <option value="IRANSans-Regular">ایران‌سن‌س Regular</option>
+              <option value="IRANSans-Light">ایران‌سن‌س Light</option>
+              <option value="IRANSans-Medium">ایران‌سن‌س Medium</option>
+              <option value="IRANSans-Bold">ایران‌سن‌س Bold</option>
+              <option value="IRANSans-Black">ایران‌سن‌س Black</option>
+              <option value="IRANSans-UltraLight">ایران‌سن‌س UltraLight</option>
+
+              {/* Kalameh */}
+              <option value="Kalameh-Regular">کلمه Regular</option>
+              <option value="Kalameh-Black">کلمه Black</option>
+
+              {/* Morabba */}
+              <option value="Morabba-Light">مربع Light</option>
+              <option value="Morabba-Medium">مربع Medium</option>
+              <option value="Morabba-Bold">مربع Bold</option>
+
+              {/* Vazir */}
+              <option value="Vazir">وزیر</option>
             </select>
           </label>
 
@@ -132,7 +153,10 @@ export default function HeroSection() {
           </div>
 
           {/* Generate Button */}
-          <button className="w-full flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow">
+          <button
+            onClick={handleCapture}
+            className="w-full flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow"
+          >
             <span className="truncate">تولید تصویر</span>
           </button>
         </div>
@@ -151,12 +175,12 @@ export default function HeroSection() {
             style={{ backgroundColor: `${bgcolor || "white"}` }}
             className="relative w-full h-full max-h-[580px]  flex items-center justify-center overflow-hidden p-8"
           >
-            <button
+            {/* <button
               onClick={handleCapture}
               className="absolute top-4 left-4 flex items-center justify-center size-10 rounded-full bg-primary text-white hover:bg-primary-light transition-colors z-10"
             >
               <Download size={20} />
-            </button>
+            </button> */}
             <p
               className={`text-center text-nowrap  `}
               style={{
