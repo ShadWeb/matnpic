@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Download } from "lucide-react";
 import html2canvas from "html2canvas";
+import { Rnd } from "react-rnd";
 
 export default function HeroSection() {
   const [text, setText] = useState("");
@@ -181,18 +182,41 @@ export default function HeroSection() {
             >
               <Download size={20} />
             </button> */}
-            <p
-              className={`text-center text-nowrap  `}
-              style={{
-                fontFamily: `${selectedFont}`,
-                fontSize: `${fontSize}px`,
-                fontWeight: isBold ? "bold" : "normal",
-                fontStyle: isItalic ? "italic" : "normal",
-                color: `${textcolor || "black"}`,
+
+            <Rnd
+              bounds="#preview"
+              default={{
+                x: 90,
+                y: 250,
+                width: "auto",
+                height: "auto",
+              }}
+              enableResizing={{
+                bottomRight: true,
+                bottomLeft: true,
+                topRight: true,
+                topLeft: true,
+                left: true,
+                right: true,
+                top: false,
+                bottom: false,
               }}
             >
-              {text || "متن شما اینجا نمایش داده می‌شود"}
-            </p>
+              <p
+                style={{
+                  fontFamily: selectedFont,
+                  fontSize: `${fontSize}px`,
+                  fontWeight: isBold ? "bold" : "normal",
+                  fontStyle: isItalic ? "italic" : "normal",
+                  color: textcolor || "black",
+                  width: "100%",
+                  height: "100%",
+                  textAlign: "center",
+                }}
+              >
+                {text || "متن شما اینجا نمایش داده می‌شود"}
+              </p>
+            </Rnd>
           </div>
         </div>
       </div>
