@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Rnd } from "react-rnd";
-
+import Image from "next/image";
 export default function HeroSection() {
   const [text, setText] = useState("");
   const [fontSize, setFontSize] = useState(32);
@@ -13,6 +13,7 @@ export default function HeroSection() {
   const [bgcolor, setbgcolor] = useState("");
   const [textcolor, settextcolor] = useState("");
   const [loding, setloding] = useState(false);
+  const [file, setFile] = useState("");
 
   const handleCapture = async () => {
     setloding(true);
@@ -30,6 +31,11 @@ export default function HeroSection() {
     } finally {
       setloding(false);
     }
+  };
+  const getimagebackground = async (e) => {
+    console.log(e.target.value);
+    setFile(URL.createObjectURL(e.target.files[0]));
+    console.log(file);
   };
 
   return (
@@ -52,7 +58,7 @@ export default function HeroSection() {
           </label>
 
           {/* Color Selection */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex gap-4">
             <div className="flex flex-col gap-2">
               <p className="text-base font-medium">رنگ پس‌زمینه</p>
               <label
@@ -65,6 +71,25 @@ export default function HeroSection() {
                   className="invisible"
                   name="bg-color"
                   type="color"
+                />
+              </label>
+            </div>
+            <div className="flex flex-col gap-2">
+              <p className="text-base font-medium">تصور پس‌زمینه</p>
+              <label
+                style={{
+                  backgroundImage: `url(${file})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+                className="w-12 h-12 rounded-full border-2 border-border-light dark:border-border-dark 
+               ring-2 ring-transparent ring-offset-4 ring-offset-background-light 
+               dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
+              >
+                <input
+                  type="file"
+                  onChange={getimagebackground}
+                  className="hidden"
                 />
               </label>
             </div>
@@ -209,16 +234,14 @@ export default function HeroSection() {
           <div className="absolute inset-0.5 rounded-[19px] bg-background-light"></div>
           <div
             id={"preview"}
-            style={{ backgroundColor: `${bgcolor || "white"}` }}
+            style={{
+              backgroundColor: `${bgcolor || "white"}`,
+              backgroundImage: `url(${file})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
             className="relative w-full h-full ]  flex items-center justify-center overflow-hidden p-8"
           >
-            {/* <button
-              onClick={handleCapture}
-              className="absolute top-4 left-4 flex items-center justify-center size-10 rounded-full bg-primary text-white hover:bg-primary-light transition-colors z-10"
-            >
-              <Download size={20} />
-            </button> */}
-
             <Rnd
               bounds="#preview"
               default={{
