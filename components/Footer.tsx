@@ -16,60 +16,17 @@ export default function Footer() {
           <div className="flex-1 max-w-md">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex items-center  text-[#111318] dark:text-black">
-                <div className=" text-primary">
-                  <svg
-                    width={40}
-                    height={40}
-                    viewBox="0 0 40 40"
-                    fill="none"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    {/* ترکیب متن و عکس */}
-                    <rect
-                      x="8"
-                      y="8"
-                      width="24"
-                      height="24"
-                      rx="4"
-                      stroke={"#5D3FD3"}
-                      strokeWidth="2"
-                    />
-
-                    {/* نماد متن */}
-                    <path
-                      d="M12 16H20M12 20H18M12 24H16"
-                      stroke={"#5D3FD3"}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-
-                    {/* نماد عکس */}
-                    <circle cx="28" cy="16" r="1.5" fill={"#5D3FD3"} />
-                    <path
-                      d="M24 28L28 24L30 26"
-                      stroke={"#5D3FD3"}
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                    />
-
-                    {/* فلش تبدیل */}
-                    <path
-                      d="M32 20L36 20M36 20L34 18M36 20L34 22"
-                      stroke={"#5D3FD3"}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {/* <Image
-                    src={"images/picmatn.png"}
-                    width={60}
-                    height={60}
-                    alt="تبدیل متن به عکس آنلاین رایگان"
-                  /> */}
-                </div>
                 <h2 className="text-xl font-bold tracking-[-0.015em]">
                   Matnpic
                 </h2>
+                <div className=" text-primary">
+                  <Image
+                    src={"images/matnpic.png"}
+                    width={60}
+                    height={60}
+                    alt="تبدیل متن به عکس آنلاین رایگان"
+                  />
+                </div>
               </div>
               {/* <h2 className="text-xl font-bold text-gray-900 dark:text-white">
                 تبدیل پی دی اف به عکس

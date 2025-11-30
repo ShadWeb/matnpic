@@ -2,17 +2,17 @@
 import { GalleryItem } from "@/types";
 import Link from "next/link";
 
-const galleryItems: GalleryItem[] = [
+const galleryItems = [
   {
     id: "pdf-ax",
-    imageUrl: "https://cdn-icons-png.flaticon.com/512/337/337946.png", // placeholder icon
+    imageUrl: "/images/picpdf.png", // placeholder icon
     alt: "سایت تبدیل عکس به PDF - pdf-ax",
     description: "سایت حرفه‌ای تبدیل عکس به PDF. سریع، ساده و رایگان.",
     link: "https://www.pdf-ax.com/",
   },
   {
     id: "ax-matn",
-    imageUrl: "https://cdn-icons-png.flaticon.com/512/1828/1828884.png", // placeholder icon
+    imageUrl: "/images/picmatn.png", // placeholder icon
     alt: "سایت تبدیل عکس به متن - ax-matn",
     description:
       "تبدیل عکس به متن فارسی و انگلیسی با دقت بالا. مناسب محتوای متنی.",
@@ -20,7 +20,7 @@ const galleryItems: GalleryItem[] = [
   },
   {
     id: "ax-pdf",
-    imageUrl: "https://cdn-icons-png.flaticon.com/512/337/337946.png", // placeholder icon
+    imageUrl: "/images/pdfpic.png", // placeholder icon
     alt: "سایت تبدیل عکس به PDF - ax-pdf",
     description: "تبدیل سریع و آسان عکس به PDF. نسخه سبک و سریع.",
     link: "https://ax-pdf.ir/",
@@ -39,7 +39,9 @@ export default function GallerySection() {
       id="gallery"
     >
       <div className="max-w-7xl mx-auto flex flex-col items-center text-center gap-4">
-        <h2 className="text-3xl md:text-4xl font-black">نمونه‌های آماده</h2>
+        <h2 className="text-3xl md:text-4xl font-black">
+          نمونه‌های از تبدیل های ما{" "}
+        </h2>
       </div>
 
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mt-12">

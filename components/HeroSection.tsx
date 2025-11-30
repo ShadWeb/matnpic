@@ -40,9 +40,17 @@ export default function HeroSection() {
 
   return (
     <section
-      className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 md:py-20"
+      className="px-4 mt-2 sm:px-8 md:px-16 lg:px-24 xl:px-40 md:py-20"
       id="home"
     >
+      <h1
+        className="mx-auto text-center 
+               text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
+               font-bold leading-snug"
+      >
+        تبدیل متن به عکس آنلاین رایگان | ساخت تصویر از متن
+      </h1>
+
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         {/* Controls Panel */}
         <div className="flex flex-col  dark:shadow-soft shadow shadow-primary gap-6 p-6 rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark backdrop-blur-md">
