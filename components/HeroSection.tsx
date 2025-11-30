@@ -29,13 +29,29 @@ export default function HeroSection() {
     try {
       const element = document.getElementById("preview");
       if (element) {
+        // ذخیره‌سازی استایل اصلی
+        const originalStyle = element.getAttribute("style");
+
+        // اعمال ابعاد دقیق برای عکس‌برداری
+        element.style.width = `${imageSize.width}px`;
+        element.style.height = `${imageSize.height}px`;
+        element.style.minHeight = `${imageSize.height}px`;
+
         const canvas = await html2canvas(element, {
           allowTaint: true,
           scale: imageScale,
           width: imageSize.width,
           height: imageSize.height,
           useCORS: true,
+          backgroundColor: bgcolor === "#ffffff" ? "#ffffff" : null,
         });
+
+        // بازگرداندن استایل اصلی
+        if (originalStyle) {
+          element.setAttribute("style", originalStyle);
+        } else {
+          element.removeAttribute("style");
+        }
 
         let mimeType = "image/png";
         let fileExtension = "png";
@@ -87,7 +103,23 @@ export default function HeroSection() {
     setbgcolor("#ffffff");
     settextcolor("#000000");
     setFile("");
+    setImageSize({ width: 800, height: 600 });
   };
+
+  // محاسبه نسبت برای نمایش پیش‌نمایش
+  const getPreviewScale = () => {
+    const maxWidth = 500; // حداکثر عرض برای پیش‌نمایش
+    const maxHeight = 400; // حداکثر ارتفاع برای پیش‌نمایش
+
+    const widthRatio = maxWidth / imageSize.width;
+    const heightRatio = maxHeight / imageSize.height;
+
+    return Math.min(widthRatio, heightRatio, 1); // نباید بزرگتر از 1 شود
+  };
+
+  const previewScale = getPreviewScale();
+  const previewWidth = imageSize.width * previewScale;
+  const previewHeight = imageSize.height * previewScale;
 
   return (
     <section
@@ -423,17 +455,12 @@ export default function HeroSection() {
             <h3 className="text-lg font-medium">پیش‌نمایش</h3>
             <div className="text-sm text-text-light/70 dark:text-text-dark/70">
               {imageSize.width} × {imageSize.height} پیکسل
+              {previewScale < 1 &&
+                ` (مقیاس: ${Math.round(previewScale * 100)}%)`}
             </div>
           </div>
 
-          <div
-            className="relative min-h-[400px] bg-accent lg:min-h-full flex items-center justify-center p-3 rounded-2xl shadow-soft"
-            style={{
-              backgroundImage:
-                "linear-gradient(to bottom right, rgba(93, 63, 211, 0.3), rgba(93, 63, 211, 0))",
-            }}
-          >
-            <div className="absolute inset-0.5 rounded-[19px] bg-background-light dark:bg-background-dark"></div>
+          <div className="flex items-center justify-center">
             <div
               id="preview"
               ref={previewRef}
@@ -442,33 +469,31 @@ export default function HeroSection() {
                 backgroundImage: file ? `url(${file})` : "none",
                 backgroundSize: "cover",
                 backgroundPosition: "center",
-                width: "100%",
-                height: "100%",
-                minHeight: "400px",
+                width: `${previewWidth}px`,
+                height: `${previewHeight}px`,
                 position: "relative",
+                border: "1px solid #e5e7eb",
+                borderRadius: "8px",
               }}
-              className="flex items-center justify-center overflow-hidden p-8"
+              className="flex items-center justify-center overflow-hidden"
             >
               <Rnd
-                bounds="#preview"
+                bounds="parent"
                 default={{
-                  x: 90,
-                  y: 250,
-                  width: "auto",
-                  height: "auto",
+                  x: previewWidth / 2 - 100,
+                  y: previewHeight / 2 - 20,
+                  width: 200,
+                  height: 40,
                 }}
                 enableResizing={{
                   bottomRight: true,
                   bottomLeft: true,
                   topRight: true,
                   topLeft: true,
-                  left: true,
-                  right: true,
-                  top: false,
-                  bottom: false,
                 }}
                 minWidth={50}
                 minHeight={30}
+                scale={previewScale}
               >
                 <p
                   style={{
@@ -483,6 +508,9 @@ export default function HeroSection() {
                     margin: 0,
                     cursor: "move",
                     userSelect: "none",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
                   }}
                 >
                   {text || "متن شما اینجا نمایش داده می‌شود"}
@@ -490,7 +518,7 @@ export default function HeroSection() {
               </Rnd>
 
               {/* Watermark */}
-              <div className="absolute bottom-2 left-2 text-xs opacity-50">
+              <div className="absolute bottom-2 left-2 text-xs opacity-30">
                 matnpic.ir
               </div>
             </div>
