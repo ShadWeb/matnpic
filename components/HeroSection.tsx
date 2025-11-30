@@ -14,6 +14,7 @@ export default function HeroSection() {
   const [textcolor, settextcolor] = useState("");
   const [loding, setloding] = useState(false);
   const [file, setFile] = useState("");
+  type FileEvent = React.ChangeEvent<HTMLInputElement>;
 
   const handleCapture = async () => {
     setloding(true);
@@ -32,12 +33,10 @@ export default function HeroSection() {
       setloding(false);
     }
   };
-  const getimagebackground = async (e) => {
-    console.log(e.target.value);
-    setFile(URL.createObjectURL(e.target.files[0]));
-    console.log(file);
+  const getimagebackground = (e: FileEvent) => {
+    const file = e.target.files?.[0];
+    if (file) setFile(URL.createObjectURL(file));
   };
-
   return (
     <section
       className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 md:py-20"
