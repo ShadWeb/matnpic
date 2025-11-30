@@ -9,19 +9,29 @@ export default function HeroSection() {
   const [fontSize, setFontSize] = useState(32);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
-  const [selectedFont, setSelectedFont] = useState("vazir");
+  const [selectedFont, setSelectedFont] = useState("Vazir");
   const [bgcolor, setbgcolor] = useState("");
   const [textcolor, settextcolor] = useState("");
+  const [loding, setloding] = useState(false);
+
   const handleCapture = async () => {
-    const element = document.getElementById("preview");
-    if (element) {
-      const canvas = await html2canvas(element, { allowTaint: true });
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = "matnpic.ir.png";
-      link.click();
+    setloding(true);
+    try {
+      const element = document.getElementById("preview");
+      if (element) {
+        const canvas = await html2canvas(element, { allowTaint: true });
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = "matnpic.ir.png";
+        link.click();
+      }
+    } catch (error) {
+      console.error("خطا در تولید تصویر:", error);
+    } finally {
+      setloding(false);
     }
   };
+
   return (
     <section
       className="px-4 sm:px-8 md:px-16 lg:px-24 xl:px-40 md:py-20"
@@ -62,7 +72,7 @@ export default function HeroSection() {
               <p className="text-base font-medium">رنگ متن</p>
               <label
                 className="size-12 rounded-full border-2 border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer"
-                style={{ backgroundColor: `${textcolor}` }}
+                style={{ backgroundColor: `${textcolor || "black"}` }}
               >
                 <input
                   className="invisible"
@@ -158,7 +168,33 @@ export default function HeroSection() {
             onClick={handleCapture}
             className="w-full flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow"
           >
-            <span className="truncate">تولید تصویر</span>
+            {loding ? (
+              <span className="flex items-center gap-2">
+                در حال تولید...
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v8H4z"
+                  ></path>
+                </svg>
+              </span>
+            ) : (
+              "تولید تصویر"
+            )}
           </button>
         </div>
 
@@ -174,7 +210,7 @@ export default function HeroSection() {
           <div
             id={"preview"}
             style={{ backgroundColor: `${bgcolor || "white"}` }}
-            className="relative w-full h-full max-h-[580px]  flex items-center justify-center overflow-hidden p-8"
+            className="relative w-full h-full ]  flex items-center justify-center overflow-hidden p-8"
           >
             {/* <button
               onClick={handleCapture}
