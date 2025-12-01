@@ -1,42 +1,161 @@
-// components/HeroSection.tsx
+// components/HeroSectionKonva.tsx
 import { useState, useRef, useEffect } from "react";
 import { Download, Maximize2, Settings } from "lucide-react";
-import html2canvas from "html2canvas";
-import { Rnd } from "react-rnd";
+import {
+  Stage,
+  Layer,
+  Rect,
+  Text,
+  Transformer,
+  Image as KonvaImage,
+} from "react-konva";
+import { useImage } from "react-konva-utils";
+import Konva from "konva";
 
-export default function HeroSection() {
+// TextBox Component with Transformer
+const TextBox = ({
+  text,
+  textProps,
+  isSelected,
+  onSelect,
+  onChange,
+}: {
+  text: string;
+  textProps: any;
+  isSelected: boolean;
+  onSelect: () => void;
+  onChange: (newAttrs: any) => void;
+}) => {
+  const textRef = useRef<Konva.Text>(null);
+  const trRef = useRef<Konva.Transformer>(null);
+
+  useEffect(() => {
+    if (isSelected && textRef.current && trRef.current) {
+      trRef.current.nodes([textRef.current]);
+      trRef.current.getLayer()?.batchDraw();
+    }
+  }, [isSelected]);
+
+  return (
+    <>
+      <Text
+        ref={textRef}
+        {...textProps}
+        text={text || "متن شما اینجا نمایش داده می‌شود"}
+        draggable
+        onClick={onSelect}
+        onTap={onSelect}
+        onDragEnd={(e) => {
+          onChange({
+            ...textProps,
+            x: e.target.x(),
+            y: e.target.y(),
+          });
+        }}
+        onTransformEnd={(e) => {
+          const node = textRef.current;
+          if (!node) return;
+
+          const scaleX = node.scaleX();
+          const scaleY = node.scaleY();
+          const rotation = node.rotation();
+
+          // Reset scale
+          node.scaleX(1);
+          node.scaleY(1);
+
+          onChange({
+            ...textProps,
+            x: node.x(),
+            y: node.y(),
+            width: Math.max(30, node.width() * scaleX),
+            height: Math.max(20, node.height() * scaleY),
+            rotation: rotation, // اضافه کردن چرخش
+          });
+        }}
+      />
+      {isSelected && (
+        <Transformer
+          ref={trRef}
+          flipEnabled={false}
+          boundBoxFunc={(oldBox, newBox) => {
+            // Limit minimum size
+            if (Math.abs(newBox.width) < 30 || Math.abs(newBox.height) < 20) {
+              return oldBox;
+            }
+            return newBox;
+          }}
+          rotationSnaps={[0, 45, 90, 135, 180, 225, 270, 315]}
+          enabledAnchors={[
+            "top-left",
+            "top-center",
+            "top-right",
+            "middle-left",
+            "middle-right",
+            "bottom-left",
+            "bottom-center",
+            "bottom-right",
+          ]}
+          resizeEnabled={true}
+          rotateEnabled={true}
+        />
+      )}
+    </>
+  );
+};
+
+export default function HeroSectionKonva() {
+  // Text state
   const [text, setText] = useState("");
-  const [fontSize, setFontSize] = useState(20);
+  const [fontSize, setFontSize] = useState(32);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [selectedFont, setSelectedFont] = useState("Vazir");
 
+  // Color state
   const [bgcolor, setbgcolor] = useState("#ffffff");
   const [textcolor, settextcolor] = useState("#000000");
 
+  // File/Image state
   const [loading, setLoading] = useState(false);
-  const [file, setFile] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>("");
   const [showSettings, setShowSettings] = useState(false);
 
+  // Canvas/Image state
   const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
   const [imageFormat, setImageFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState(1);
   const [imageScale, setImageScale] = useState(1);
 
-  const previewRef = useRef<HTMLDivElement>(null);
-  const exportRef = useRef<HTMLDivElement>(null);
-
-  type FileEvent = React.ChangeEvent<HTMLInputElement>;
-
-  // ------------ state for text box position & size ------------
-  const [box, setBox] = useState({
-    x: Math.round(800 / 2 - 100),
-    y: Math.round(600 / 2 - 20),
+  // Text box state - now as an object for Transformer compatibility
+  const [textBoxProps, setTextBoxProps] = useState({
+    x: 300,
+    y: 280,
     width: 200,
     height: 40,
+    rotation: 0,
+    fill: "#000000",
+    fontSize: 32,
+    fontFamily: "Vazir",
+    fontStyle: "normal",
+    align: "center" as const,
+    verticalAlign: "middle" as const,
+    wrap: "word" as const,
+    lineHeight: 1.2,
   });
 
-  // Presets remain the same
+  // Selection state
+  const [selectedId, setSelectedId] = useState<string | null>("textBox");
+
+  // Refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load background image
+  const [bgImage] = useImage(imageUrl);
+
+  // Preset sizes
   const presetSizes = [
     { name: "مربع (1:1)", width: 800, height: 800 },
     { name: "مستطیل (4:3)", width: 800, height: 600 },
@@ -46,176 +165,229 @@ export default function HeroSection() {
     { name: "پست اینستاگرام", width: 1080, height: 1080 },
   ];
 
-  const applyPresetSize = (width: number, height: number) => {
-    // scale box position/size proportionally to new canvas size
-    setBox((prev) => {
-      const wRatio = width / imageSize.width;
-      const hRatio = height / imageSize.height;
-      return {
-        x: Math.round(prev.x * wRatio),
-        y: Math.round(prev.y * hRatio),
-        width: Math.round(prev.width * wRatio),
-        height: Math.round(prev.height * hRatio),
-      };
-    });
-    setImageSize({ width, height });
-  };
-
-  const resetPreview = () => {
-    setText("");
-    setFontSize(32); // Adjusted to match the default size on load
-    setIsBold(false);
-    setIsItalic(false);
-    setSelectedFont("Vazir");
-    setbgcolor("#ffffff");
-    settextcolor("#000000");
-    setFile("");
-    setImageSize({ width: 800, height: 600 });
-    setBox({
-      x: Math.round(800 / 2 - 100),
-      y: Math.round(600 / 2 - 20),
-      width: 200,
-      height: 40,
-    });
-  };
-
-  // ----------- اسکیل پیش‌نمایش -----------
+  // Calculate preview scale
   const getPreviewScale = () => {
-    const maxW = 500;
-    const maxH = 400;
-    return Math.min(maxW / imageSize.width, maxH / imageSize.height, 1);
+    if (!containerRef.current) return 1;
+    const containerWidth = containerRef.current.offsetWidth;
+    const maxScale = containerWidth / imageSize.width;
+    return Math.min(maxScale, 1);
   };
 
   const previewScale = getPreviewScale();
   const previewWidth = Math.round(imageSize.width * previewScale);
   const previewHeight = Math.round(imageSize.height * previewScale);
 
-  // wait for image to be loaded before export
-  const waitForImageLoad = (src: string) =>
-    new Promise<void>((resolve) => {
-      if (!src) return resolve();
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => resolve();
-      img.onerror = () => resolve();
-      img.src = src;
-    });
+  // Apply preset size
+  const applyPresetSize = (width: number, height: number) => {
+    const scaleX = width / imageSize.width;
+    const scaleY = height / imageSize.height;
 
-  // cross-browser fullscreen
-  // const handleFullscreen = () => {
-  //   const el = previewRef.current;
-  //   if (!el) return;
-  //   // @ts-ignore
-  //   if (el.requestFullscreen) el.requestFullscreen();
-  //   // @ts-ignore
-  //   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-  //   // @ts-ignore
-  //   else if (el.msRequestFullscreen) el.msRequestFullscreen();
-  // };
+    setTextBoxProps((prev) => ({
+      ...prev,
+      x: prev.x * scaleX,
+      y: prev.y * scaleY,
+      width: prev.width * scaleX,
+      height: prev.height * scaleY,
+    }));
 
-  // Shared style for the text box content - ESSENTIAL FOR SYNC!
-  const textContentStyle = {
-    fontFamily: selectedFont,
-    fontSize: `${fontSize}px`,
-    fontWeight: isBold ? "bold" : "normal",
-    fontStyle: isItalic ? "italic" : "normal",
-    color: textcolor,
-    width: "100%",
-    height: "100%",
-    margin: 0,
-    textAlign: "center" as const, // Cast to prevent TS error for 'center' string literal
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "visible" as const, // Cast
-    wordBreak: "break-word" as const, // Cast
-    lineHeight: 1.2,
-    boxSizing: "border-box" as const, // Added for consistency
+    setImageSize({ width, height });
   };
 
-  // ----------- فیکس اصلی برای خروجی دقیق ----------
+  // Reset everything
+  const resetPreview = () => {
+    setText("");
+    setFontSize(32);
+    setIsBold(false);
+    setIsItalic(false);
+    setSelectedFont("Vazir");
+    setbgcolor("#ffffff");
+    settextcolor("#000000");
+    setFile(null);
+    setImageUrl("");
+    setImageSize({ width: 800, height: 600 });
+    setTextBoxProps({
+      x: 300,
+      y: 280,
+      width: 200,
+      height: 40,
+      rotation: 0,
+      fill: "#000000",
+      fontSize: 32,
+      fontFamily: "Vazir",
+      fontStyle: "normal",
+      align: "center",
+      verticalAlign: "middle",
+      wrap: "word",
+      lineHeight: 1.2,
+    });
+  };
+
+  // Handle file upload
+  const getimagebackground = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFile(file);
+      const url = URL.createObjectURL(file);
+      setImageUrl(url);
+    }
+  };
+
+  // Handle text box changes
+  const handleTextBoxChange = (newAttrs: any) => {
+    setTextBoxProps((prev) => ({
+      ...prev,
+      ...newAttrs,
+    }));
+  };
+
+  // Handle stage click for deselection
+  const checkDeselect = (e: any) => {
+    const clickedOnEmpty = e.target === e.target.getStage();
+    if (clickedOnEmpty) {
+      setSelectedId(null);
+    }
+  };
+
+  // Helper function to create font style string
+  const getFontStyle = () => {
+    let style = "";
+    if (isBold) style += "bold ";
+    if (isItalic) style += "italic";
+    return style.trim() || "normal";
+  };
+
+  // Export image - اینجا مطمئن می‌شویم که export دقیقاً شبیه preview باشد
   const handleCapture = async () => {
     setLoading(true);
+
     try {
-      // ensure fonts loaded
-      if ((document as any).fonts && (document as any).fonts.ready) {
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          await (document as any).fonts.ready;
-        } catch {
-          // ignore
-        }
+      // Wait for background image to load if exists
+      if (bgImage) {
+        await new Promise((resolve) => {
+          if (bgImage.complete) {
+            resolve(true);
+          } else {
+            bgImage.onload = () => resolve(true);
+            bgImage.onerror = () => resolve(true);
+            // Timeout for safety
+            setTimeout(() => resolve(true), 1000);
+          }
+        });
       }
 
-      // wait for background image to load
-      if (file) {
-        await waitForImageLoad(file);
-      }
-
-      const exportEl = exportRef.current;
-      if (!exportEl) {
-        console.error("exportRef not available");
-        setLoading(false);
-        return;
-      }
-
-      // use html2canvas on the export container
-      const canvas = await html2canvas(exportEl, {
-        scale: imageScale,
-        useCORS: true,
-        backgroundColor: file ? null : bgcolor || "#ffffff",
-        allowTaint: true,
-        logging: false,
-        width: imageSize.width,
-        height: imageSize.height,
-        // The width/height above are for the source element.
-        // The scale parameter handles the final resolution.
+      // Create a temporary stage for export (full size)
+      const tempStage = new Konva.Stage({
+        width: imageSize.width * imageScale, // ضرب در مقیاس برای رزولوشن بالاتر
+        height: imageSize.height * imageScale,
+        container: document.createElement("div"),
       });
 
-      // MIME
-      let mime = "image/png";
-      let ext = "png";
-      if (imageFormat === "jpg") {
-        mime = "image/jpeg";
-        ext = "jpg";
-      } else if (imageFormat === "webp") {
-        mime = "image/webp";
-        ext = "webp";
+      const tempLayer = new Konva.Layer();
+      tempStage.add(tempLayer);
+
+      // Add background - دقیقاً همانند preview اما با مقیاس
+      if (bgImage) {
+        const bgImg = new Konva.Image({
+          image: bgImage,
+          width: imageSize.width * imageScale,
+          height: imageSize.height * imageScale,
+          x: 0,
+          y: 0,
+        });
+        tempLayer.add(bgImg);
+      } else {
+        const bgRect = new Konva.Rect({
+          width: imageSize.width * imageScale,
+          height: imageSize.height * imageScale,
+          x: 0,
+          y: 0,
+          fill: bgcolor,
+        });
+        tempLayer.add(bgRect);
       }
 
+      // Add text - با دقیقاً همان خصوصیات preview
+      const textNode = new Konva.Text({
+        x: textBoxProps.x * imageScale,
+        y: textBoxProps.y * imageScale,
+        width: textBoxProps.width * imageScale,
+        height: textBoxProps.height * imageScale,
+        rotation: textBoxProps.rotation, // این خط مهم است!
+        text: text || "متن شما اینجا نمایش داده می‌شود",
+        fontSize: fontSize * imageScale, // سایز فونت هم باید با مقیاس ضرب شود
+        fontFamily: selectedFont,
+        fontStyle: getFontStyle(),
+        fill: textcolor,
+        align: "center",
+        verticalAlign: "middle",
+        wrap: "word",
+        lineHeight: 1.2,
+        // این خصوصیات برای مطابقت کامل با نمایش
+        scaleX: 1,
+        scaleY: 1,
+      });
+      tempLayer.add(textNode);
+
+      // Add watermark - دقیقاً همانند preview
+      const watermark = new Konva.Text({
+        x: 8 * imageScale,
+        y: (imageSize.height - 20) * imageScale,
+        text: "matnpic.ir",
+        fontSize: 12 * imageScale,
+        fontFamily: "Arial",
+        fill: "#000000",
+        opacity: 0.3,
+      });
+      tempLayer.add(watermark);
+
+      tempLayer.draw();
+
+      // Export با مقیاس دلخواه کاربر
+      const dataURL = tempStage.toDataURL({
+        mimeType:
+          imageFormat === "jpg"
+            ? "image/jpeg"
+            : imageFormat === "webp"
+            ? "image/webp"
+            : "image/png",
+        quality: imageQuality,
+        // توجه: pixelRatio را دیگر تنظیم نمی‌کنیم چون خودمان مقیاس را دستی اعمال کردیم
+      });
+
       const link = document.createElement("a");
-      // Use toDataURL with format/quality parameters
-      link.href = canvas.toDataURL(mime, imageQuality);
-      link.download = `matnpic.ir.${ext}`;
+      link.href = dataURL;
+      link.download = `matnpic.ir.${imageFormat}`;
       link.click();
-    } catch (e) {
-      console.error("ERROR in handleCapture:", e);
+
+      // Cleanup
+      tempStage.destroy();
+    } catch (error) {
+      console.error("Export error:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const getimagebackground = (e: FileEvent) => {
-    const f = e.target.files?.[0];
-    if (f) {
-      const url = URL.createObjectURL(f);
-      setFile(url);
-    }
-  };
+  // Update text box props when font/color changes
+  useEffect(() => {
+    const fontStyle = getFontStyle();
+    setTextBoxProps((prev) => ({
+      ...prev,
+      fill: textcolor,
+      fontSize: fontSize,
+      fontFamily: selectedFont,
+      fontStyle: fontStyle,
+    }));
+  }, [textcolor, fontSize, selectedFont, isBold, isItalic]);
 
-  // cleanup created object URLs on unmount
+  // Cleanup
   useEffect(() => {
     return () => {
-      if (file && file.startsWith("blob:")) {
-        try {
-          URL.revokeObjectURL(file);
-        } catch {
-          /* ignore */
-        }
+      if (imageUrl && imageUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(imageUrl);
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [imageUrl]);
 
   return (
     <section
@@ -233,7 +405,6 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         {/* Controls Panel */}
         <div className="flex flex-col dark:shadow-soft shadow shadow-primary gap-6 p-6 rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark backdrop-blur-md">
-          {/* ... (Controls Panel content remains unchanged) ... */}
           {/* Text Input */}
           <label className="flex flex-col w-full">
             <p className="text-base font-medium pb-2">متن خود را وارد کنید</p>
@@ -266,20 +437,22 @@ export default function HeroSection() {
               <p className="text-base font-medium">تصویر پس‌زمینه</p>
               <label
                 style={{
-                  backgroundImage: file ? `url(${file})` : "none",
+                  backgroundImage: imageUrl ? `url(${imageUrl})` : "none",
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }}
                 className="w-12 h-12 rounded-full border-2 border-border-light dark:border-border-dark ring-2 ring-transparent ring-offset-4 ring-offset-background-light dark:ring-offset-background-dark has-[:checked]:ring-primary cursor-pointer flex items-center justify-center text-xs text-center"
+                onClick={() => fileInputRef.current?.click()}
               >
-                {!file && "انتخاب"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={getimagebackground}
-                  className="hidden"
-                />
+                {!imageUrl && "انتخاب"}
               </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={getimagebackground}
+                className="hidden"
+              />
             </div>
             <div className="flex flex-col gap-2">
               <p className="text-base font-medium">رنگ متن</p>
@@ -309,29 +482,6 @@ export default function HeroSection() {
                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' width='24px' height='24px' fill='rgb(167,139,250)' viewBox='0 0 256 256'%3e%3cpath d='M181.66,170.34a8,8,0,0,1,0,11.32l-48,48a8,8,0,0,1-11.32,0l-48-48a8,8,0,0,1,11.32-11.32L128,212.69l42.34-42.35A8,8,0,0,1,181.66,170.34Zm-96-84.68L128,43.31l42.34,42.35a8,8,0,0,0,11.32-11.32l-48-48a8,8,0,0,0-11.32,0l-48-48A8,8,0,0,0,85.66,85.66Z'%3e%3c/path%3e%3c/svg%3e")`,
               }}
             >
-              {/* Dana */}
-              <option value="Dana-Regular">دانا Regular</option>
-              <option value="Dana-Medium">دانا Medium</option>
-              <option value="Dana-DemiBold">دانا DemiBold</option>
-
-              {/* IRANSans */}
-              <option value="IRANSans-Regular">ایران‌سن‌س Regular</option>
-              <option value="IRANSans-Light">ایران‌سن‌س Light</option>
-              <option value="IRANSans-Medium">ایران‌سن‌س Medium</option>
-              <option value="IRANSans-Bold">ایران‌سن‌س Bold</option>
-              <option value="IRANSans-Black">ایران‌سن‌س Black</option>
-              <option value="IRANSans-UltraLight">ایران‌سن‌س UltraLight</option>
-
-              {/* Kalameh */}
-              <option value="Kalameh-Regular">کلمه Regular</option>
-              <option value="Kalameh-Black">کلمه Black</option>
-
-              {/* Morabba */}
-              <option value="Morabba-Light">مربع Light</option>
-              <option value="Morabba-Medium">مربع Medium</option>
-              <option value="Morabba-Bold">مربع Bold</option>
-
-              {/* Vazir */}
               <option value="Vazir">وزیر</option>
               <option value="Arial">Arial</option>
               <option value="Tahoma">Tahoma</option>
@@ -519,7 +669,7 @@ export default function HeroSection() {
             <button
               onClick={handleCapture}
               className="flex-1 flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow"
-              disabled={loading} // Prevent multiple clicks
+              disabled={loading}
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -566,237 +716,74 @@ export default function HeroSection() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center">
-            <div
-              id="preview"
-              ref={previewRef}
-              style={{
-                backgroundColor: `${bgcolor}`,
-                backgroundImage: file ? `url(${file})` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                width: `${previewWidth}px`,
-                height: `${previewHeight}px`,
-                position: "relative",
-                border: "1px solid #e5e7eb",
-                borderRadius: "8px",
-                overflow: "hidden",
-              }}
-              className="flex items-center justify-center"
+          <div
+            ref={containerRef}
+            className="flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900"
+            style={{
+              width: `${previewWidth}px`,
+              height: `${previewHeight}px`,
+              margin: "0 auto",
+            }}
+          >
+            <Stage
+              width={previewWidth}
+              height={previewHeight}
+              scaleX={previewScale}
+              scaleY={previewScale}
+              onMouseDown={checkDeselect}
+              onTouchStart={checkDeselect}
             >
-              {/* Rnd in preview (Scaled) */}
-              <Rnd
-                bounds="parent"
-                size={{
-                  width: Math.max(50, Math.round(box.width * previewScale)),
-                  height: Math.max(30, Math.round(box.height * previewScale)),
-                }}
-                position={{
-                  x: Math.round(box.x * previewScale),
-                  y: Math.round(box.y * previewScale),
-                }}
-                enableResizing={{
-                  bottomRight: true,
-                  bottomLeft: true,
-                  topRight: true,
-                  topLeft: true,
-                }}
-                minWidth={Math.max(30, Math.round(50 * previewScale))}
-                minHeight={Math.max(20, Math.round(30 * previewScale))}
-                onDragStop={(_e, d) => {
-                  setBox((prev) => ({
-                    ...prev,
-                    x: Math.round(d.x / previewScale),
-                    y: Math.round(d.y / previewScale),
-                  }));
-                }}
-                onResizeStop={(_e, _direction, ref, _delta, position) => {
-                  setBox({
-                    x: Math.round(position.x / previewScale),
-                    y: Math.round(position.y / previewScale),
-                    width: Math.round(ref.offsetWidth / previewScale),
-                    height: Math.round(ref.offsetHeight / previewScale),
-                  });
-                }}
-              >
-                <span
-                  style={{
-                    ...textContentStyle, // Use shared style object
-                    cursor: "move",
-                    userSelect: "none",
-                  }}
-                >
-                  {text || "متن شما اینجا نمایش داده می‌شود"}
-                </span>
-              </Rnd>
+              <Layer>
+                {/* Background - دقیقاً همانند export */}
+                {bgImage ? (
+                  <KonvaImage
+                    image={bgImage}
+                    width={imageSize.width}
+                    height={imageSize.height}
+                    x={0}
+                    y={0}
+                  />
+                ) : (
+                  <Rect
+                    width={imageSize.width}
+                    height={imageSize.height}
+                    x={0}
+                    y={0}
+                    fill={bgcolor}
+                  />
+                )}
 
-              {/* Watermark */}
-              <div className="absolute bottom-2 left-2 text-xs opacity-30">
-                matnpic.ir
-              </div>
-            </div>
+                {/* Text Box - با تمام خصوصیات export */}
+                <TextBox
+                  text={text}
+                  textProps={{
+                    ...textBoxProps,
+                    fontStyle: getFontStyle(),
+                  }}
+                  isSelected={selectedId === "textBox"}
+                  onSelect={() => setSelectedId("textBox")}
+                  onChange={handleTextBoxChange}
+                />
+
+                {/* Watermark - دقیقاً همانند export */}
+                <Text
+                  x={8}
+                  y={imageSize.height - 20}
+                  text="matnpic.ir"
+                  fontSize={12}
+                  fontFamily="Arial"
+                  fill="#000000"
+                  opacity={0.3}
+                />
+              </Layer>
+            </Stage>
           </div>
 
           {/* Preview Controls */}
           <div className="flex justify-between items-center text-sm">
             <div className="text-text-light/70 dark:text-text-dark/70">
-              متن را می‌توانید با ماوس جابجا و اندازه‌گیری کنید
+              متن را می‌توانید با ماوس جابجا، تغییر اندازه و چرخش دهید
             </div>
-            {/* <button
-              onClick={handleFullscreen}
-              className="flex items-center gap-1 text-primary hover:text-primary-light transition-colors"
-            >
-              <Maximize2 size={16} />
-              نمایش تمام صفحه
-            </button> */}
-          </div>
-        </div>
-      </div>
-
-      {/* ---------------- Hidden export container ---------------- */}
-      <div
-        ref={exportRef}
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: -99999,
-          top: -99999,
-          width: imageSize.width,
-          height: imageSize.height,
-          overflow: "hidden",
-          pointerEvents: "none",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            width: imageSize.width,
-            height: imageSize.height,
-            backgroundColor: bgcolor,
-            backgroundImage: file ? `url(${file})` : "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            position: "relative",
-            borderRadius: 8,
-            overflow: "hidden",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* متن در exportRef باید دقیقاً مانند پریویو باشد (Unscaled) */}
-          <div
-            style={{
-              position: "absolute",
-              left: box.x,
-              top: box.y,
-              width: box.width,
-              height: box.height,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "visible",
-              boxSizing: "border-box",
-              // ضروری برای مطابقت با Rnd
-              cursor: "move", // This should not affect html2canvas but is good for Rnd match
-              userSelect: "none", // This should not affect html2canvas but is good for Rnd match
-            }}
-          >
-            <p
-              style={{
-                ...textContentStyle, // Use shared style object
-                // The style object is designed to match Rnd content except for cursor/userSelect
-              }}
-            >
-              {text || "متن شما اینجا نمایش داده می‌شود"}
-            </p>
-          </div>
-
-          {/* watermark */}
-          <div
-            style={{
-              position: "absolute",
-              left: 8,
-              bottom: 8,
-              fontSize: 12,
-              opacity: 0.3,
-              pointerEvents: "none",
-              fontFamily: "Arial, sans-serif",
-            }}
-          >
-            matnpic.ir
-          </div>
-        </div>
-      </div>
-
-      {/* ---------------- Hidden export container ---------------- */}
-      <div
-        ref={exportRef}
-        aria-hidden
-        style={{
-          position: "absolute",
-          left: -99999,
-          top: -99999,
-          width: imageSize.width,
-          height: imageSize.height,
-          overflow: "hidden",
-          pointerEvents: "none",
-          boxSizing: "border-box",
-        }}
-      >
-        <div
-          style={{
-            width: imageSize.width,
-            height: imageSize.height,
-            backgroundColor: bgcolor,
-            backgroundImage: file ? `url(${file})` : "none",
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            position: "relative",
-            borderRadius: 8,
-            overflow: "hidden",
-            boxSizing: "border-box",
-          }}
-        >
-          {/* متن در exportRef باید دقیقاً مانند پریویو باشد (Unscaled) */}
-          <div
-            style={{
-              position: "absolute",
-              left: box.x,
-              top: box.y,
-              width: box.width,
-              height: box.height,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "visible",
-              boxSizing: "border-box",
-              // ضروری برای مطابقت با Rnd
-              cursor: "move", // This should not affect html2canvas but is good for Rnd match
-              userSelect: "none", // This should not affect html2canvas but is good for Rnd match
-            }}
-          >
-            <p
-              style={{
-                ...textContentStyle, // Use shared style object
-                // The style object is designed to match Rnd content except for cursor/userSelect
-              }}
-            >
-              {text || "متن شما اینجا نمایش داده می‌شود"}
-            </p>
-          </div>
-
-          {/* watermark */}
-          <div
-            style={{
-              position: "absolute",
-              left: 8,
-              bottom: 8,
-              fontSize: 12,
-              opacity: 0.3,
-              pointerEvents: "none",
-              fontFamily: "Arial, sans-serif",
-            }}
-          >
-            matnpic.ir
           </div>
         </div>
       </div>
