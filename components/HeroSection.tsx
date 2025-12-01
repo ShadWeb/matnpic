@@ -151,6 +151,8 @@ export default function HeroSectionKonva() {
   // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Ref for window resize effect
+  const [containerWidth, setContainerWidth] = useState(800);
 
   // Load background image
   const [bgImage] = useImage(imageUrl);
@@ -165,17 +167,42 @@ export default function HeroSectionKonva() {
     { name: "پست اینستاگرام", width: 1080, height: 1080 },
   ];
 
-  // Calculate preview scale
+  // --- تغییرات برای ریسپانسیو شدن ---
+  useEffect(() => {
+    const updateContainerWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+
+    updateContainerWidth(); // Initial set
+    window.addEventListener("resize", updateContainerWidth);
+
+    return () => window.removeEventListener("resize", updateContainerWidth);
+  }, []);
+
+  // Calculate preview scale and dimensions (Responsive Logic)
   const getPreviewScale = () => {
-    if (!containerRef.current) return 1;
-    const containerWidth = containerRef.current.offsetWidth;
-    const maxScale = containerWidth / imageSize.width;
+    // 32 is roughly the total horizontal padding (p-4 * 2 = 32px) on the container.
+    // We should rely on containerWidth state for better responsiveness
+    const maxPreviewWidth = containerWidth;
+
+    if (imageSize.width === 0) return 1;
+
+    // Calculate max scale to fit the container width
+    const maxScale = maxPreviewWidth / imageSize.width;
+
+    // We want to scale down if the original size is larger than the container width
+    // But we don't want to scale up for the Konva *preview* (Konva stage scales the content, too)
+    // The scale should never be greater than 1, to prevent blurry scaling up on high DPI screens,
+    // and to ensure it fits the container width if the original imageSize is larger than the container.
     return Math.min(maxScale, 1);
   };
 
   const previewScale = getPreviewScale();
   const previewWidth = Math.round(imageSize.width * previewScale);
   const previewHeight = Math.round(imageSize.height * previewScale);
+  // --- پایان تغییرات برای ریسپانسیو شدن ---
 
   // Apply preset size
   const applyPresetSize = (width: number, height: number) => {
@@ -184,6 +211,7 @@ export default function HeroSectionKonva() {
 
     setTextBoxProps((prev) => ({
       ...prev,
+      // Scale position and size of the text box relative to the new canvas size
       x: prev.x * scaleX,
       y: prev.y * scaleY,
       width: prev.width * scaleX,
@@ -203,7 +231,7 @@ export default function HeroSectionKonva() {
     setbgcolor("#ffffff");
     settextcolor("#000000");
     setFile(null);
-    setImageUrl("");
+    setUrlImage("");
     setImageSize({ width: 800, height: 600 });
     setTextBoxProps({
       x: 300,
@@ -228,7 +256,7 @@ export default function HeroSectionKonva() {
     if (file) {
       setFile(file);
       const url = URL.createObjectURL(file);
-      setImageUrl(url);
+      setUrlImage(url);
     }
   };
 
@@ -396,8 +424,8 @@ export default function HeroSectionKonva() {
     >
       <h1
         className="mx-auto text-center 
-              text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
-              font-bold leading-snug"
+                   text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
+                   font-bold leading-snug"
       >
         تبدیل متن به عکس آنلاین رایگان | ساخت تصویر از متن
       </h1>
@@ -705,7 +733,7 @@ export default function HeroSectionKonva() {
           </div>
         </div>
 
-        {/* Preview Panel */}
+        {/* Preview Panel (Responsive Container) */}
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium">پیش‌نمایش</h3>
@@ -716,25 +744,30 @@ export default function HeroSectionKonva() {
             </div>
           </div>
 
+          {/* Konva Stage Container - Now relies on flex-grow and max-width for responsiveness */}
           <div
             ref={containerRef}
-            className="flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900"
+            className="flex-grow flex items-center justify-center border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-900"
             style={{
-              width: `${previewWidth}px`,
-              height: `${previewHeight}px`,
+              // Use dynamically calculated dimensions for Konva stage wrapper
+              width: "100%", // Take full width of parent (flex-grow container)
+              maxWidth: `${imageSize.width}px`, // Limit max width to original size
+              aspectRatio: `${imageSize.width}/${imageSize.height}`, // Maintain aspect ratio
               margin: "0 auto",
             }}
           >
             <Stage
+              // Stage dimensions are now tied to the calculated preview size
               width={previewWidth}
               height={previewHeight}
+              // The Konva layer/nodes will be scaled down based on this
               scaleX={previewScale}
               scaleY={previewScale}
               onMouseDown={checkDeselect}
               onTouchStart={checkDeselect}
             >
               <Layer>
-                {/* Background - دقیقاً همانند export */}
+                {/* Background - The actual Konva node dimensions remain the original imageSize */}
                 {bgImage ? (
                   <KonvaImage
                     image={bgImage}
@@ -753,7 +786,7 @@ export default function HeroSectionKonva() {
                   />
                 )}
 
-                {/* Text Box - با تمام خصوصیات export */}
+                {/* Text Box - with full export properties */}
                 <TextBox
                   text={text}
                   textProps={{
@@ -765,7 +798,7 @@ export default function HeroSectionKonva() {
                   onChange={handleTextBoxChange}
                 />
 
-                {/* Watermark - دقیقاً همانند export */}
+                {/* Watermark - with full export properties */}
                 <Text
                   x={8}
                   y={imageSize.height - 20}
