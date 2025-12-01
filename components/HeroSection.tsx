@@ -1,86 +1,42 @@
 // components/HeroSection.tsx
 import { useState, useRef, useEffect } from "react";
-import { Download, Settings, Maximize2 } from "lucide-react";
+import { Download, Maximize2, Settings } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Rnd } from "react-rnd";
-import Image from "next/image";
 
 export default function HeroSection() {
   const [text, setText] = useState("");
-  const [fontSize, setFontSize] = useState(32);
+  const [fontSize, setFontSize] = useState(20);
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [selectedFont, setSelectedFont] = useState("Vazir");
+
   const [bgcolor, setbgcolor] = useState("#ffffff");
   const [textcolor, settextcolor] = useState("#000000");
+
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+
   const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
   const [imageFormat, setImageFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState(1);
-  const [imageScale, setImageScale] = useState(2);
+  const [imageScale, setImageScale] = useState(1);
+
   const previewRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   type FileEvent = React.ChangeEvent<HTMLInputElement>;
 
-  const handleCapture = async () => {
-    setLoading(true);
-    try {
-      const element = document.getElementById("preview");
-      if (element) {
-        // ذخیره‌سازی استایل اصلی
-        const originalStyle = element.getAttribute("style");
+  // ------------ state for text box position & size ------------
+  const [box, setBox] = useState({
+    x: Math.round(800 / 2 - 100),
+    y: Math.round(600 / 2 - 20),
+    width: 200,
+    height: 40,
+  });
 
-        // اعمال ابعاد دقیق برای عکس‌برداری
-        element.style.width = `${imageSize.width}px`;
-        element.style.height = `${imageSize.height}px`;
-        element.style.minHeight = `${imageSize.height}px`;
-
-        const canvas = await html2canvas(element, {
-          allowTaint: true,
-          scale: imageScale,
-          width: imageSize.width,
-          height: imageSize.height,
-          useCORS: true,
-          backgroundColor: bgcolor === "#ffffff" ? "#ffffff" : null,
-        });
-
-        // بازگرداندن استایل اصلی
-        if (originalStyle) {
-          element.setAttribute("style", originalStyle);
-        } else {
-          element.removeAttribute("style");
-        }
-
-        let mimeType = "image/png";
-        let fileExtension = "png";
-
-        if (imageFormat === "jpg") {
-          mimeType = "image/jpeg";
-          fileExtension = "jpg";
-        } else if (imageFormat === "webp") {
-          mimeType = "image/webp";
-          fileExtension = "webp";
-        }
-
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL(mimeType, imageQuality);
-        link.download = `matnpic.ir.${fileExtension}`;
-        link.click();
-      }
-    } catch (error) {
-      console.error("خطا در تولید تصویر:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getimagebackground = (e: FileEvent) => {
-    const file = e.target.files?.[0];
-    if (file) setFile(URL.createObjectURL(file));
-  };
-
+  // Presets remain the same
   const presetSizes = [
     { name: "مربع (1:1)", width: 800, height: 800 },
     { name: "مستطیل (4:3)", width: 800, height: 600 },
@@ -91,12 +47,23 @@ export default function HeroSection() {
   ];
 
   const applyPresetSize = (width: number, height: number) => {
+    // scale box position/size proportionally to new canvas size
+    setBox((prev) => {
+      const wRatio = width / imageSize.width;
+      const hRatio = height / imageSize.height;
+      return {
+        x: Math.round(prev.x * wRatio),
+        y: Math.round(prev.y * hRatio),
+        width: Math.round(prev.width * wRatio),
+        height: Math.round(prev.height * hRatio),
+      };
+    });
     setImageSize({ width, height });
   };
 
   const resetPreview = () => {
     setText("");
-    setFontSize(32);
+    setFontSize(32); // Adjusted to match the default size on load
     setIsBold(false);
     setIsItalic(false);
     setSelectedFont("Vazir");
@@ -104,22 +71,151 @@ export default function HeroSection() {
     settextcolor("#000000");
     setFile("");
     setImageSize({ width: 800, height: 600 });
+    setBox({
+      x: Math.round(800 / 2 - 100),
+      y: Math.round(600 / 2 - 20),
+      width: 200,
+      height: 40,
+    });
   };
 
-  // محاسبه نسبت برای نمایش پیش‌نمایش
+  // ----------- اسکیل پیش‌نمایش -----------
   const getPreviewScale = () => {
-    const maxWidth = 500; // حداکثر عرض برای پیش‌نمایش
-    const maxHeight = 400; // حداکثر ارتفاع برای پیش‌نمایش
-
-    const widthRatio = maxWidth / imageSize.width;
-    const heightRatio = maxHeight / imageSize.height;
-
-    return Math.min(widthRatio, heightRatio, 1); // نباید بزرگتر از 1 شود
+    const maxW = 500;
+    const maxH = 400;
+    return Math.min(maxW / imageSize.width, maxH / imageSize.height, 1);
   };
 
   const previewScale = getPreviewScale();
-  const previewWidth = imageSize.width * previewScale;
-  const previewHeight = imageSize.height * previewScale;
+  const previewWidth = Math.round(imageSize.width * previewScale);
+  const previewHeight = Math.round(imageSize.height * previewScale);
+
+  // wait for image to be loaded before export
+  const waitForImageLoad = (src: string) =>
+    new Promise<void>((resolve) => {
+      if (!src) return resolve();
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve();
+      img.onerror = () => resolve();
+      img.src = src;
+    });
+
+  // cross-browser fullscreen
+  // const handleFullscreen = () => {
+  //   const el = previewRef.current;
+  //   if (!el) return;
+  //   // @ts-ignore
+  //   if (el.requestFullscreen) el.requestFullscreen();
+  //   // @ts-ignore
+  //   else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  //   // @ts-ignore
+  //   else if (el.msRequestFullscreen) el.msRequestFullscreen();
+  // };
+
+  // Shared style for the text box content - ESSENTIAL FOR SYNC!
+  const textContentStyle = {
+    fontFamily: selectedFont,
+    fontSize: `${fontSize}px`,
+    fontWeight: isBold ? "bold" : "normal",
+    fontStyle: isItalic ? "italic" : "normal",
+    color: textcolor,
+    width: "100%",
+    height: "100%",
+    margin: 0,
+    textAlign: "center" as const, // Cast to prevent TS error for 'center' string literal
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "visible" as const, // Cast
+    wordBreak: "break-word" as const, // Cast
+    lineHeight: 1.2,
+    boxSizing: "border-box" as const, // Added for consistency
+  };
+
+  // ----------- فیکس اصلی برای خروجی دقیق ----------
+  const handleCapture = async () => {
+    setLoading(true);
+    try {
+      // ensure fonts loaded
+      if ((document as any).fonts && (document as any).fonts.ready) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await (document as any).fonts.ready;
+        } catch {
+          // ignore
+        }
+      }
+
+      // wait for background image to load
+      if (file) {
+        await waitForImageLoad(file);
+      }
+
+      const exportEl = exportRef.current;
+      if (!exportEl) {
+        console.error("exportRef not available");
+        setLoading(false);
+        return;
+      }
+
+      // use html2canvas on the export container
+      const canvas = await html2canvas(exportEl, {
+        scale: imageScale,
+        useCORS: true,
+        backgroundColor: file ? null : bgcolor || "#ffffff",
+        allowTaint: true,
+        logging: false,
+        width: imageSize.width,
+        height: imageSize.height,
+        // The width/height above are for the source element.
+        // The scale parameter handles the final resolution.
+      });
+
+      // MIME
+      let mime = "image/png";
+      let ext = "png";
+      if (imageFormat === "jpg") {
+        mime = "image/jpeg";
+        ext = "jpg";
+      } else if (imageFormat === "webp") {
+        mime = "image/webp";
+        ext = "webp";
+      }
+
+      const link = document.createElement("a");
+      // Use toDataURL with format/quality parameters
+      link.href = canvas.toDataURL(mime, imageQuality);
+      link.download = `matnpic.ir.${ext}`;
+      link.click();
+    } catch (e) {
+      console.error("ERROR in handleCapture:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getimagebackground = (e: FileEvent) => {
+    const f = e.target.files?.[0];
+    if (f) {
+      const url = URL.createObjectURL(f);
+      setFile(url);
+    }
+  };
+
+  // cleanup created object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (file && file.startsWith("blob:")) {
+        try {
+          URL.revokeObjectURL(file);
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <section
@@ -128,8 +224,8 @@ export default function HeroSection() {
     >
       <h1
         className="mx-auto text-center 
-               text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
-               font-bold leading-snug"
+              text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
+              font-bold leading-snug"
       >
         تبدیل متن به عکس آنلاین رایگان | ساخت تصویر از متن
       </h1>
@@ -137,6 +233,7 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         {/* Controls Panel */}
         <div className="flex flex-col dark:shadow-soft shadow shadow-primary gap-6 p-6 rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark backdrop-blur-md">
+          {/* ... (Controls Panel content remains unchanged) ... */}
           {/* Text Input */}
           <label className="flex flex-col w-full">
             <p className="text-base font-medium pb-2">متن خود را وارد کنید</p>
@@ -169,7 +266,7 @@ export default function HeroSection() {
               <p className="text-base font-medium">تصویر پس‌زمینه</p>
               <label
                 style={{
-                  backgroundImage: `url(${file})`,
+                  backgroundImage: file ? `url(${file})` : "none",
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                 }}
@@ -252,7 +349,7 @@ export default function HeroSection() {
                   onChange={(e) => setIsBold(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 <span className="text-sm font-medium">Bold</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
@@ -262,7 +359,7 @@ export default function HeroSection() {
                   onChange={(e) => setIsItalic(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
                 <span className="text-sm font-medium">Italic</span>
               </label>
             </div>
@@ -422,6 +519,7 @@ export default function HeroSection() {
             <button
               onClick={handleCapture}
               className="flex-1 flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow"
+              disabled={loading} // Prevent multiple clicks
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -482,16 +580,20 @@ export default function HeroSection() {
                 position: "relative",
                 border: "1px solid #e5e7eb",
                 borderRadius: "8px",
+                overflow: "hidden",
               }}
-              className="flex items-center justify-center overflow-hidden"
+              className="flex items-center justify-center"
             >
+              {/* Rnd in preview (Scaled) */}
               <Rnd
                 bounds="parent"
-                default={{
-                  x: previewWidth / 2 - 100,
-                  y: previewHeight / 2 - 20,
-                  width: 200,
-                  height: 40,
+                size={{
+                  width: Math.max(50, Math.round(box.width * previewScale)),
+                  height: Math.max(30, Math.round(box.height * previewScale)),
+                }}
+                position={{
+                  x: Math.round(box.x * previewScale),
+                  y: Math.round(box.y * previewScale),
                 }}
                 enableResizing={{
                   bottomRight: true,
@@ -499,30 +601,33 @@ export default function HeroSection() {
                   topRight: true,
                   topLeft: true,
                 }}
-                minWidth={50}
-                minHeight={30}
-                scale={previewScale}
+                minWidth={Math.max(30, Math.round(50 * previewScale))}
+                minHeight={Math.max(20, Math.round(30 * previewScale))}
+                onDragStop={(_e, d) => {
+                  setBox((prev) => ({
+                    ...prev,
+                    x: Math.round(d.x / previewScale),
+                    y: Math.round(d.y / previewScale),
+                  }));
+                }}
+                onResizeStop={(_e, _direction, ref, _delta, position) => {
+                  setBox({
+                    x: Math.round(position.x / previewScale),
+                    y: Math.round(position.y / previewScale),
+                    width: Math.round(ref.offsetWidth / previewScale),
+                    height: Math.round(ref.offsetHeight / previewScale),
+                  });
+                }}
               >
-                <p
+                <span
                   style={{
-                    fontFamily: selectedFont,
-                    fontSize: `${fontSize}px`,
-                    fontWeight: isBold ? "bold" : "normal",
-                    fontStyle: isItalic ? "italic" : "normal",
-                    color: textcolor,
-                    width: "100%",
-                    height: "100%",
-                    textAlign: "center",
-                    margin: 0,
+                    ...textContentStyle, // Use shared style object
                     cursor: "move",
                     userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
                   }}
                 >
                   {text || "متن شما اینجا نمایش داده می‌شود"}
-                </p>
+                </span>
               </Rnd>
 
               {/* Watermark */}
@@ -537,17 +642,87 @@ export default function HeroSection() {
             <div className="text-text-light/70 dark:text-text-dark/70">
               متن را می‌توانید با ماوس جابجا و اندازه‌گیری کنید
             </div>
-            <button
-              onClick={() => {
-                if (previewRef.current) {
-                  previewRef.current.requestFullscreen();
-                }
-              }}
+            {/* <button
+              onClick={handleFullscreen}
               className="flex items-center gap-1 text-primary hover:text-primary-light transition-colors"
             >
               <Maximize2 size={16} />
               نمایش تمام صفحه
-            </button>
+            </button> */}
+          </div>
+        </div>
+      </div>
+
+      {/* ---------------- Hidden export container ---------------- */}
+      <div
+        ref={exportRef}
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: -99999,
+          top: -99999,
+          width: imageSize.width,
+          height: imageSize.height,
+          overflow: "hidden",
+          pointerEvents: "none",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            width: imageSize.width,
+            height: imageSize.height,
+            backgroundColor: bgcolor,
+            backgroundImage: file ? `url(${file})` : "none",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
+            borderRadius: 8,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* متن در exportRef باید دقیقاً مانند پریویو باشد (Unscaled) */}
+          <div
+            style={{
+              position: "absolute",
+              left: box.x,
+              top: box.y,
+              width: box.width,
+              height: box.height,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "visible",
+              boxSizing: "border-box",
+              // ضروری برای مطابقت با Rnd
+              cursor: "move", // This should not affect html2canvas but is good for Rnd match
+              userSelect: "none", // This should not affect html2canvas but is good for Rnd match
+            }}
+          >
+            <p
+              style={{
+                ...textContentStyle, // Use shared style object
+                // The style object is designed to match Rnd content except for cursor/userSelect
+              }}
+            >
+              {text || "متن شما اینجا نمایش داده می‌شود"}
+            </p>
+          </div>
+
+          {/* watermark */}
+          <div
+            style={{
+              position: "absolute",
+              left: 8,
+              bottom: 8,
+              fontSize: 12,
+              opacity: 0.3,
+              pointerEvents: "none",
+              fontFamily: "Arial, sans-serif",
+            }}
+          >
+            matnpic.ir
           </div>
         </div>
       </div>
