@@ -58,6 +58,7 @@ const TextBox = ({
 
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
+          const rotation = node.rotation();
 
           // Reset scale
           node.scaleX(1);
@@ -69,6 +70,7 @@ const TextBox = ({
             y: node.y(),
             width: Math.max(30, node.width() * scaleX),
             height: Math.max(20, node.height() * scaleY),
+            rotation: rotation, // اضافه کردن چرخش
           });
         }}
       />
@@ -124,6 +126,7 @@ export default function HeroSectionKonva() {
   const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
   const [imageFormat, setImageFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState(1);
+  const [imageScale, setImageScale] = useState(1);
 
   // Text box state - now as an object for Transformer compatibility
   const [textBoxProps, setTextBoxProps] = useState({
@@ -135,16 +138,17 @@ export default function HeroSectionKonva() {
     fill: "#000000",
     fontSize: 32,
     fontFamily: "Vazir",
+    fontStyle: "normal",
     align: "center" as const,
     verticalAlign: "middle" as const,
     wrap: "word" as const,
+    lineHeight: 1.2,
   });
 
   // Selection state
   const [selectedId, setSelectedId] = useState<string | null>("textBox");
 
-  // Stage ref
-  const stageRef = useRef<Konva.Stage>(null);
+  // Refs
   const containerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -210,9 +214,11 @@ export default function HeroSectionKonva() {
       fill: "#000000",
       fontSize: 32,
       fontFamily: "Vazir",
+      fontStyle: "normal",
       align: "center",
       verticalAlign: "middle",
       wrap: "word",
+      lineHeight: 1.2,
     });
   };
 
@@ -242,66 +248,92 @@ export default function HeroSectionKonva() {
     }
   };
 
-  // Export image
+  // Helper function to create font style string
+  const getFontStyle = () => {
+    let style = "";
+    if (isBold) style += "bold ";
+    if (isItalic) style += "italic";
+    return style.trim() || "normal";
+  };
+
+  // Export image - اینجا مطمئن می‌شویم که export دقیقاً شبیه preview باشد
   const handleCapture = async () => {
     setLoading(true);
 
     try {
-      if (!stageRef.current) {
-        console.error("Stage ref not available");
-        return;
+      // Wait for background image to load if exists
+      if (bgImage) {
+        await new Promise((resolve) => {
+          if (bgImage.complete) {
+            resolve(true);
+          } else {
+            bgImage.onload = () => resolve(true);
+            bgImage.onerror = () => resolve(true);
+            // Timeout for safety
+            setTimeout(() => resolve(true), 1000);
+          }
+        });
       }
 
       // Create a temporary stage for export (full size)
       const tempStage = new Konva.Stage({
-        width: imageSize.width,
-        height: imageSize.height,
+        width: imageSize.width * imageScale, // ضرب در مقیاس برای رزولوشن بالاتر
+        height: imageSize.height * imageScale,
         container: document.createElement("div"),
       });
 
       const tempLayer = new Konva.Layer();
       tempStage.add(tempLayer);
 
-      // Add background
+      // Add background - دقیقاً همانند preview اما با مقیاس
       if (bgImage) {
         const bgImg = new Konva.Image({
           image: bgImage,
-          width: imageSize.width,
-          height: imageSize.height,
+          width: imageSize.width * imageScale,
+          height: imageSize.height * imageScale,
+          x: 0,
+          y: 0,
         });
         tempLayer.add(bgImg);
       } else {
         const bgRect = new Konva.Rect({
-          width: imageSize.width,
-          height: imageSize.height,
+          width: imageSize.width * imageScale,
+          height: imageSize.height * imageScale,
+          x: 0,
+          y: 0,
           fill: bgcolor,
         });
         tempLayer.add(bgRect);
       }
 
-      // Add text with current font style
+      // Add text - با دقیقاً همان خصوصیات preview
       const textNode = new Konva.Text({
-        x: textBoxProps.x,
-        y: textBoxProps.y,
-        width: textBoxProps.width,
-        height: textBoxProps.height,
+        x: textBoxProps.x * imageScale,
+        y: textBoxProps.y * imageScale,
+        width: textBoxProps.width * imageScale,
+        height: textBoxProps.height * imageScale,
+        rotation: textBoxProps.rotation, // این خط مهم است!
         text: text || "متن شما اینجا نمایش داده می‌شود",
-        fontSize: fontSize,
+        fontSize: fontSize * imageScale, // سایز فونت هم باید با مقیاس ضرب شود
         fontFamily: selectedFont,
+        fontStyle: getFontStyle(),
         fill: textcolor,
         align: "center",
         verticalAlign: "middle",
-        fontStyle: (isBold ? "bold " : "") + (isItalic ? "italic" : ""),
         wrap: "word",
+        lineHeight: 1.2,
+        // این خصوصیات برای مطابقت کامل با نمایش
+        scaleX: 1,
+        scaleY: 1,
       });
       tempLayer.add(textNode);
 
-      // Add watermark
+      // Add watermark - دقیقاً همانند preview
       const watermark = new Konva.Text({
-        x: 8,
-        y: imageSize.height - 20,
+        x: 8 * imageScale,
+        y: (imageSize.height - 20) * imageScale,
         text: "matnpic.ir",
-        fontSize: 12,
+        fontSize: 12 * imageScale,
         fontFamily: "Arial",
         fill: "#000000",
         opacity: 0.3,
@@ -310,7 +342,7 @@ export default function HeroSectionKonva() {
 
       tempLayer.draw();
 
-      // Export
+      // Export با مقیاس دلخواه کاربر
       const dataURL = tempStage.toDataURL({
         mimeType:
           imageFormat === "jpg"
@@ -319,6 +351,7 @@ export default function HeroSectionKonva() {
             ? "image/webp"
             : "image/png",
         quality: imageQuality,
+        // توجه: pixelRatio را دیگر تنظیم نمی‌کنیم چون خودمان مقیاس را دستی اعمال کردیم
       });
 
       const link = document.createElement("a");
@@ -337,13 +370,15 @@ export default function HeroSectionKonva() {
 
   // Update text box props when font/color changes
   useEffect(() => {
+    const fontStyle = getFontStyle();
     setTextBoxProps((prev) => ({
       ...prev,
       fill: textcolor,
       fontSize: fontSize,
       fontFamily: selectedFont,
+      fontStyle: fontStyle,
     }));
-  }, [textcolor, fontSize, selectedFont]);
+  }, [textcolor, fontSize, selectedFont, isBold, isItalic]);
 
   // Cleanup
   useEffect(() => {
@@ -353,9 +388,6 @@ export default function HeroSectionKonva() {
       }
     };
   }, [imageUrl]);
-
-  // Font weight and style
-  const fontStyle = (isBold ? "bold " : "") + (isItalic ? "italic" : "");
 
   return (
     <section
@@ -602,6 +634,26 @@ export default function HeroSectionKonva() {
                     />
                   </div>
                 )}
+
+                {/* Image Scale */}
+                <div>
+                  <p className="text-base font-medium pb-2">
+                    رزولوشن (مقیاس):{" "}
+                    <span className="font-bold text-accent">{imageScale}x</span>
+                  </p>
+                  <input
+                    type="range"
+                    min="1"
+                    max="5"
+                    step="0.5"
+                    value={imageScale}
+                    onChange={(e) => setImageScale(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer range-lg accent-primary-light"
+                  />
+                  <p className="text-xs text-text-light/70 dark:text-text-dark/70 mt-1">
+                    رزولوشن بالاتر = کیفیت بهتر اما حجم فایل بیشتر
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -674,7 +726,6 @@ export default function HeroSectionKonva() {
             }}
           >
             <Stage
-              ref={stageRef}
               width={previewWidth}
               height={previewHeight}
               scaleX={previewScale}
@@ -683,34 +734,38 @@ export default function HeroSectionKonva() {
               onTouchStart={checkDeselect}
             >
               <Layer>
-                {/* Background */}
+                {/* Background - دقیقاً همانند export */}
                 {bgImage ? (
                   <KonvaImage
                     image={bgImage}
                     width={imageSize.width}
                     height={imageSize.height}
+                    x={0}
+                    y={0}
                   />
                 ) : (
                   <Rect
                     width={imageSize.width}
                     height={imageSize.height}
+                    x={0}
+                    y={0}
                     fill={bgcolor}
                   />
                 )}
 
-                {/* Text Box */}
+                {/* Text Box - با تمام خصوصیات export */}
                 <TextBox
                   text={text}
                   textProps={{
                     ...textBoxProps,
-                    fontStyle: fontStyle,
+                    fontStyle: getFontStyle(),
                   }}
                   isSelected={selectedId === "textBox"}
                   onSelect={() => setSelectedId("textBox")}
                   onChange={handleTextBoxChange}
                 />
 
-                {/* Watermark */}
+                {/* Watermark - دقیقاً همانند export */}
                 <Text
                   x={8}
                   y={imageSize.height - 20}
