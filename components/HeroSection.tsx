@@ -1,9 +1,8 @@
 // components/HeroSection.tsx
-import { useState, useRef, useEffect } from "react";
-import { Download, Settings, Maximize2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Download, Maximize2, Settings } from "lucide-react";
 import html2canvas from "html2canvas";
 import { Rnd } from "react-rnd";
-import Image from "next/image";
 
 export default function HeroSection() {
   const [text, setText] = useState("");
@@ -11,74 +10,81 @@ export default function HeroSection() {
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
   const [selectedFont, setSelectedFont] = useState("Vazir");
+
   const [bgcolor, setbgcolor] = useState("#ffffff");
   const [textcolor, settextcolor] = useState("#000000");
+
   const [loading, setLoading] = useState(false);
   const [file, setFile] = useState("");
   const [showSettings, setShowSettings] = useState(false);
+
   const [imageSize, setImageSize] = useState({ width: 800, height: 600 });
   const [imageFormat, setImageFormat] = useState("png");
   const [imageQuality, setImageQuality] = useState(1);
   const [imageScale, setImageScale] = useState(2);
+
   const previewRef = useRef<HTMLDivElement>(null);
 
   type FileEvent = React.ChangeEvent<HTMLInputElement>;
 
+  // ----------- فیکس اصلی برای خروجی دقیق ----------
   const handleCapture = async () => {
     setLoading(true);
     try {
-      const element = document.getElementById("preview");
-      if (element) {
-        // ذخیره‌سازی استایل اصلی
-        const originalStyle = element.getAttribute("style");
+      const preview = previewRef.current;
+      if (!preview) return;
 
-        // اعمال ابعاد دقیق برای عکس‌برداری
-        element.style.width = `${imageSize.width}px`;
-        element.style.height = `${imageSize.height}px`;
-        element.style.minHeight = `${imageSize.height}px`;
+      // ذخیره استایل قبلی پیش‌نمایش
+      const original = {
+        width: preview.style.width,
+        height: preview.style.height,
+        transform: preview.style.transform,
+      };
 
-        const canvas = await html2canvas(element, {
-          allowTaint: true,
-          scale: imageScale,
-          width: imageSize.width,
-          height: imageSize.height,
-          useCORS: true,
-          backgroundColor: bgcolor === "#ffffff" ? "#ffffff" : null,
-        });
+      // اعمال اندازه واقعی برای خروجی
+      preview.style.width = `${imageSize.width}px`;
+      preview.style.height = `${imageSize.height}px`;
+      preview.style.transform = "scale(1)";
 
-        // بازگرداندن استایل اصلی
-        if (originalStyle) {
-          element.setAttribute("style", originalStyle);
-        } else {
-          element.removeAttribute("style");
-        }
+      const canvas = await html2canvas(preview, {
+        scale: imageScale,
+        backgroundColor: bgcolor === "#ffffff" ? "#ffffff" : null,
+        useCORS: true,
+      });
 
-        let mimeType = "image/png";
-        let fileExtension = "png";
+      // بازگردانی استایل پیش‌نمایش
+      preview.style.width = original.width;
+      preview.style.height = original.height;
+      preview.style.transform = original.transform;
 
-        if (imageFormat === "jpg") {
-          mimeType = "image/jpeg";
-          fileExtension = "jpg";
-        } else if (imageFormat === "webp") {
-          mimeType = "image/webp";
-          fileExtension = "webp";
-        }
+      //-------------------------------------------
 
-        const link = document.createElement("a");
-        link.href = canvas.toDataURL(mimeType, imageQuality);
-        link.download = `matnpic.ir.${fileExtension}`;
-        link.click();
+      // MIME
+      let mime = "image/png";
+      let ext = "png";
+
+      if (imageFormat === "jpg") {
+        mime = "image/jpeg";
+        ext = "jpg";
       }
-    } catch (error) {
-      console.error("خطا در تولید تصویر:", error);
-    } finally {
-      setLoading(false);
+      if (imageFormat === "webp") {
+        mime = "image/webp";
+        ext = "webp";
+      }
+
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL(mime, imageQuality);
+      link.download = `matnpic.ir.${ext}`;
+      link.click();
+    } catch (e) {
+      console.error("ERROR:", e);
     }
+    setLoading(false);
   };
 
   const getimagebackground = (e: FileEvent) => {
-    const file = e.target.files?.[0];
-    if (file) setFile(URL.createObjectURL(file));
+    const f = e.target.files?.[0];
+    if (f) setFile(URL.createObjectURL(f));
   };
 
   const presetSizes = [
@@ -89,10 +95,6 @@ export default function HeroSection() {
     { name: "استوری اینستاگرام", width: 1080, height: 1920 },
     { name: "پست اینستاگرام", width: 1080, height: 1080 },
   ];
-
-  const applyPresetSize = (width: number, height: number) => {
-    setImageSize({ width, height });
-  };
 
   const resetPreview = () => {
     setText("");
@@ -106,15 +108,11 @@ export default function HeroSection() {
     setImageSize({ width: 800, height: 600 });
   };
 
-  // محاسبه نسبت برای نمایش پیش‌نمایش
+  // ----------- اسکیل پیش‌نمایش (فقط UI — خروجی واقعی جداست) -----------
   const getPreviewScale = () => {
-    const maxWidth = 500; // حداکثر عرض برای پیش‌نمایش
-    const maxHeight = 400; // حداکثر ارتفاع برای پیش‌نمایش
-
-    const widthRatio = maxWidth / imageSize.width;
-    const heightRatio = maxHeight / imageSize.height;
-
-    return Math.min(widthRatio, heightRatio, 1); // نباید بزرگتر از 1 شود
+    const maxW = 500;
+    const maxH = 400;
+    return Math.min(maxW / imageSize.width, maxH / imageSize.height, 1);
   };
 
   const previewScale = getPreviewScale();
@@ -333,7 +331,7 @@ export default function HeroSection() {
                     {presetSizes.map((size, index) => (
                       <button
                         key={index}
-                        onClick={() => applyPresetSize(size.width, size.height)}
+                        onClick={() => presetSizes(size.width, size.height)}
                         className="text-xs px-2 py-1 rounded border border-border-light dark:border-border-dark hover:bg-primary/10 transition-colors"
                       >
                         {size.name}
