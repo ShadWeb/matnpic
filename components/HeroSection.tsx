@@ -36,7 +36,7 @@ export default function HeroSection() {
     height: 40,
   });
 
-  // presets
+  // Presets remain the same
   const presetSizes = [
     { name: "مربع (1:1)", width: 800, height: 800 },
     { name: "مستطیل (4:3)", width: 800, height: 600 },
@@ -63,7 +63,7 @@ export default function HeroSection() {
 
   const resetPreview = () => {
     setText("");
-    setFontSize(32);
+    setFontSize(32); // Adjusted to match the default size on load
     setIsBold(false);
     setIsItalic(false);
     setSelectedFont("Vazir");
@@ -113,6 +113,26 @@ export default function HeroSection() {
     else if (el.msRequestFullscreen) el.msRequestFullscreen();
   };
 
+  // Shared style for the text box content - ESSENTIAL FOR SYNC!
+  const textContentStyle = {
+    fontFamily: selectedFont,
+    fontSize: `${fontSize}px`,
+    fontWeight: isBold ? "bold" : "normal",
+    fontStyle: isItalic ? "italic" : "normal",
+    color: textcolor,
+    width: "100%",
+    height: "100%",
+    margin: 0,
+    textAlign: "center" as const, // Cast to prevent TS error for 'center' string literal
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    overflow: "visible" as const, // Cast
+    wordBreak: "break-word" as const, // Cast
+    lineHeight: 1.2,
+    boxSizing: "border-box" as const, // Added for consistency
+  };
+
   // ----------- فیکس اصلی برای خروجی دقیق ----------
   const handleCapture = async () => {
     setLoading(true);
@@ -148,6 +168,8 @@ export default function HeroSection() {
         logging: false,
         width: imageSize.width,
         height: imageSize.height,
+        // The width/height above are for the source element.
+        // The scale parameter handles the final resolution.
       });
 
       // MIME
@@ -162,6 +184,7 @@ export default function HeroSection() {
       }
 
       const link = document.createElement("a");
+      // Use toDataURL with format/quality parameters
       link.href = canvas.toDataURL(mime, imageQuality);
       link.download = `matnpic.ir.${ext}`;
       link.click();
@@ -201,8 +224,8 @@ export default function HeroSection() {
     >
       <h1
         className="mx-auto text-center 
-               text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
-               font-bold leading-snug"
+              text-2xl sm:text-3xl md:text-4xl lg:text-5xl 
+              font-bold leading-snug"
       >
         تبدیل متن به عکس آنلاین رایگان | ساخت تصویر از متن
       </h1>
@@ -210,6 +233,7 @@ export default function HeroSection() {
       <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
         {/* Controls Panel */}
         <div className="flex flex-col dark:shadow-soft shadow shadow-primary gap-6 p-6 rounded-2xl bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark backdrop-blur-md">
+          {/* ... (Controls Panel content remains unchanged) ... */}
           {/* Text Input */}
           <label className="flex flex-col w-full">
             <p className="text-base font-medium pb-2">متن خود را وارد کنید</p>
@@ -495,6 +519,7 @@ export default function HeroSection() {
             <button
               onClick={handleCapture}
               className="flex-1 flex items-center justify-center rounded-2xl h-14 px-5 bg-gradient-to-r from-primary to-primary-light text-white text-lg font-bold shadow-lg shadow-primary/30 hover:shadow-glow transition-shadow"
+              disabled={loading} // Prevent multiple clicks
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -559,7 +584,7 @@ export default function HeroSection() {
               }}
               className="flex items-center justify-center"
             >
-              {/* Rnd in preview */}
+              {/* Rnd in preview (Scaled) */}
               <Rnd
                 bounds="parent"
                 size={{
@@ -596,23 +621,9 @@ export default function HeroSection() {
               >
                 <p
                   style={{
-                    fontFamily: selectedFont,
-                    fontSize: `${fontSize}px`,
-                    fontWeight: isBold ? "bold" : "normal",
-                    fontStyle: isItalic ? "italic" : "normal",
-                    color: textcolor,
-                    width: "100%",
-                    height: "100%",
-                    textAlign: "center",
-                    margin: 0,
+                    ...textContentStyle, // Use shared style object
                     cursor: "move",
                     userSelect: "none",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    overflow: "visible",
-                    wordBreak: "break-word",
-                    lineHeight: 1.2,
                   }}
                 >
                   {text || "متن شما اینجا نمایش داده می‌شود"}
@@ -671,7 +682,7 @@ export default function HeroSection() {
             boxSizing: "border-box",
           }}
         >
-          {/* متن در exportRef باید دقیقاً مانند پریویو باشد */}
+          {/* متن در exportRef باید دقیقاً مانند پریویو باشد (Unscaled) */}
           <div
             style={{
               position: "absolute",
@@ -685,28 +696,14 @@ export default function HeroSection() {
               overflow: "visible",
               boxSizing: "border-box",
               // ضروری برای مطابقت با Rnd
-              cursor: "move",
-              userSelect: "none",
+              cursor: "move", // This should not affect html2canvas but is good for Rnd match
+              userSelect: "none", // This should not affect html2canvas but is good for Rnd match
             }}
           >
             <p
               style={{
-                fontFamily: selectedFont,
-                fontSize: `${fontSize}px`,
-                fontWeight: isBold ? "bold" : "normal",
-                fontStyle: isItalic ? "italic" : "normal",
-                color: textcolor,
-                margin: 0,
-                textAlign: "center",
-                width: "100%",
-                height: "100%",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                overflow: "visible",
-                wordBreak: "break-word",
-                lineHeight: 1.2,
-                boxSizing: "border-box",
+                ...textContentStyle, // Use shared style object
+                // The style object is designed to match Rnd content except for cursor/userSelect
               }}
             >
               {text || "متن شما اینجا نمایش داده می‌شود"}
