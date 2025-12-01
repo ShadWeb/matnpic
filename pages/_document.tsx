@@ -10,10 +10,7 @@ export default function Document() {
 
         {/* --- SEO META TAGS --- */}
         <title>تبدیل متن به عکس آنلاین رایگان | ساخت تصویر از متن</title>
-        <title>
-          تبدیل عکس به پی دی اف آنلاین | تبدیل چند عکس به یک فایل PDF در گوشی و
-          آیفون
-        </title>
+
         <meta
           property="og:title"
           content="تبدیل عکس به PDF آنلاین | ساخت چند عکس در یک فایل PDF"
