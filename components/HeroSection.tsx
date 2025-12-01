@@ -726,6 +726,80 @@ export default function HeroSection() {
           </div>
         </div>
       </div>
+
+      {/* ---------------- Hidden export container ---------------- */}
+      <div
+        ref={exportRef}
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: -99999,
+          top: -99999,
+          width: imageSize.width,
+          height: imageSize.height,
+          overflow: "hidden",
+          pointerEvents: "none",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            width: imageSize.width,
+            height: imageSize.height,
+            backgroundColor: bgcolor,
+            backgroundImage: file ? `url(${file})` : "none",
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            position: "relative",
+            borderRadius: 8,
+            overflow: "hidden",
+            boxSizing: "border-box",
+          }}
+        >
+          {/* متن در exportRef باید دقیقاً مانند پریویو باشد (Unscaled) */}
+          <div
+            style={{
+              position: "absolute",
+              left: box.x,
+              top: box.y,
+              width: box.width,
+              height: box.height,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              overflow: "visible",
+              boxSizing: "border-box",
+              // ضروری برای مطابقت با Rnd
+              cursor: "move", // This should not affect html2canvas but is good for Rnd match
+              userSelect: "none", // This should not affect html2canvas but is good for Rnd match
+            }}
+          >
+            <p
+              style={{
+                ...textContentStyle, // Use shared style object
+                // The style object is designed to match Rnd content except for cursor/userSelect
+              }}
+            >
+              {text || "متن شما اینجا نمایش داده می‌شود"}
+            </p>
+          </div>
+
+          {/* watermark */}
+          <div
+            style={{
+              position: "absolute",
+              left: 8,
+              bottom: 8,
+              fontSize: 12,
+              opacity: 0.3,
+              pointerEvents: "none",
+              fontFamily: "Arial, sans-serif",
+            }}
+          >
+            matnpic.ir
+          </div>
+        </div>
+      </div>
     </section>
   );
 }
